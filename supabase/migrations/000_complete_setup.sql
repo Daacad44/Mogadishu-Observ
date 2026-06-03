@@ -244,26 +244,31 @@ CREATE POLICY "Admin update contact messages"  ON contact_messages FOR UPDATE
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  assigned_role user_role;
+  assigned_role user_role := 'user';
 BEGIN
-  IF NEW.email = 'observatory@mug.so' THEN
-    assigned_role := 'super_admin';
-  ELSE
-    assigned_role := COALESCE(
-      (NEW.raw_user_meta_data->>'role')::user_role,
-      'user'
-    );
-  END IF;
+  BEGIN
+    -- Determine role: super-admin email gets promoted; others default to 'user'
+    IF NEW.email = 'observatory@mug.so' THEN
+      assigned_role := 'super_admin';
+    ELSIF NEW.raw_user_meta_data->>'role' IS NOT NULL
+      AND NEW.raw_user_meta_data->>'role' IN ('user','admin','analyst','super_admin') THEN
+      assigned_role := (NEW.raw_user_meta_data->>'role')::user_role;
+    END IF;
 
-  INSERT INTO profiles (id, email, full_name, role)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    assigned_role
-  )
-  ON CONFLICT (id) DO UPDATE
-    SET role = EXCLUDED.role, updated_at = NOW();
+    INSERT INTO profiles (id, email, full_name, role)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+      assigned_role
+    )
+    ON CONFLICT (id) DO UPDATE
+      SET role = EXCLUDED.role, updated_at = NOW();
+
+  EXCEPTION WHEN OTHERS THEN
+    -- Never block user creation because of a profile trigger error
+    NULL;
+  END;
 
   RETURN NEW;
 END;
