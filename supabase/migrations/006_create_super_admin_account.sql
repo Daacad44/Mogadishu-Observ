@@ -51,30 +51,41 @@ BEGIN
       ''
     );
 
-    -- Create the profile for the new auth user
+    -- Required: identity row so GoTrue can authenticate email/password
+    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    VALUES (
+      new_uid::text, new_uid,
+      json_build_object('sub', new_uid::text, 'email', 'observatory@mug.so'),
+      'email', NOW(), NOW(), NOW()
+    ) ON CONFLICT (provider, id) DO NOTHING;
+
     INSERT INTO profiles (id, email, full_name, role)
     VALUES (new_uid, 'observatory@mug.so', 'Observatory Admin', 'super_admin')
     ON CONFLICT (id) DO UPDATE
-      SET role = 'super_admin',
-          full_name = 'Observatory Admin',
-          updated_at = NOW();
+      SET role = 'super_admin', full_name = 'Observatory Admin', updated_at = NOW();
 
     RAISE NOTICE 'Created observatory@mug.so (id: %)', new_uid;
   ELSE
-    -- User already exists — just ensure profile has super_admin role
+    UPDATE auth.users
+    SET encrypted_password = crypt('12345678', gen_salt('bf')),
+        email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+        updated_at = NOW()
+    WHERE id = existing_id;
+
+    -- Ensure identity row exists
+    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    VALUES (
+      existing_id::text, existing_id,
+      json_build_object('sub', existing_id::text, 'email', 'observatory@mug.so'),
+      'email', NOW(), NOW(), NOW()
+    ) ON CONFLICT (provider, id) DO NOTHING;
+
     INSERT INTO profiles (id, email, full_name, role)
     VALUES (existing_id, 'observatory@mug.so', 'Observatory Admin', 'super_admin')
     ON CONFLICT (id) DO UPDATE
       SET role = 'super_admin',
           full_name = COALESCE(profiles.full_name, 'Observatory Admin'),
           updated_at = NOW();
-
-    -- Also update the password to match what the user specified
-    UPDATE auth.users
-    SET encrypted_password = crypt('12345678', gen_salt('bf')),
-        email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-        updated_at = NOW()
-    WHERE id = existing_id;
 
     RAISE NOTICE 'Updated existing observatory@mug.so (id: %)', existing_id;
   END IF;
