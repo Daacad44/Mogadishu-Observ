@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python
+python-analysis/__pycache__/
+python-analysis/.venv/
+
+# Vercel
+.vercel
+
+# Legacy Next.js
+.next/
+out/

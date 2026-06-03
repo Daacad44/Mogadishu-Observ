@@ -1,0 +1,177 @@
+-- =============================================================================
+-- Mogadishu Urban Growth Observatory — Complete Database Schema
+-- =============================================================================
+-- Apply migrations in order:
+--   1. migrations/001_initial_schema.sql
+--   2. migrations/002_super_admin.sql
+--   3. migrations/003_seed_data.sql
+-- =============================================================================
+
+-- EXTENSIONS
+--   uuid-ossp  — UUID generation
+--   postgis    — spatial types (optional, geometry stored as JSONB)
+
+-- ENUM TYPES
+--   user_role          : user | admin | analyst | super_admin
+--   report_status      : draft | published | archived
+--   prediction_status  : pending | processing | completed | failed
+
+-- =============================================================================
+-- TABLE: profiles
+-- Extends auth.users. One row per registered user.
+-- =============================================================================
+-- | Column     | Type        | Description                          |
+-- |------------|-------------|--------------------------------------|
+-- | id         | UUID PK     | FK → auth.users(id)                  |
+-- | email      | TEXT        | User email                           |
+-- | full_name  | TEXT        | Display name                         |
+-- | role       | user_role   | Access level (default: user)         |
+-- | avatar_url | TEXT        | Profile image URL                    |
+-- | created_at | TIMESTAMPTZ |                                      |
+-- | updated_at | TIMESTAMPTZ |                                      |
+
+-- =============================================================================
+-- TABLE: districts
+-- Mogadishu administrative districts.
+-- =============================================================================
+-- | Column     | Type          | Description                        |
+-- |------------|---------------|------------------------------------|
+-- | id         | UUID PK       |                                    |
+-- | name       | TEXT UNIQUE   | English name                       |
+-- | name_so    | TEXT          | Somali name                        |
+-- | code       | TEXT UNIQUE   | Short code (e.g. HOD)              |
+-- | area_km2   | DECIMAL       | District area                      |
+-- | population | INTEGER       | Estimated population               |
+-- | geometry   | JSONB         | GeoJSON polygon                    |
+-- | centroid   | JSONB         | GeoJSON point                      |
+-- | created_at | TIMESTAMPTZ   |                                    |
+-- | updated_at | TIMESTAMPTZ   |                                    |
+
+-- =============================================================================
+-- TABLE: urban_growth
+-- Yearly built-up area per district (2014–2030).
+-- =============================================================================
+-- | Column               | Type        | Description                  |
+-- |----------------------|-------------|------------------------------|
+-- | id                   | UUID PK     |                              |
+-- | district_id          | UUID FK     | → districts(id)              |
+-- | year                 | INTEGER     | 2014–2030                    |
+-- | built_up_area_km2    | DECIMAL     | Built-up area in km²         |
+-- | growth_rate          | DECIMAL     | YoY growth %                 |
+-- | change_from_previous | DECIMAL     | Area delta km²               |
+-- | geometry             | JSONB       | Built-up polygon             |
+-- | metadata             | JSONB       | Extra fields                 |
+-- | created_at           | TIMESTAMPTZ |                              |
+-- UNIQUE (district_id, year)
+
+-- =============================================================================
+-- TABLE: building_density
+-- Building counts and density per district per year.
+-- =============================================================================
+-- | Column              | Type        | Description                   |
+-- |---------------------|-------------|-------------------------------|
+-- | id                  | UUID PK     |                               |
+-- | district_id         | UUID FK     | → districts(id)               |
+-- | year                | INTEGER     | 2014–2030                     |
+-- | buildings_count     | INTEGER     | Total buildings               |
+-- | density_per_km2     | DECIMAL     | Buildings per km²             |
+-- | avg_building_size_m2| DECIMAL     | Average building footprint    |
+-- | geometry            | JSONB       |                               |
+-- | created_at          | TIMESTAMPTZ |                               |
+-- UNIQUE (district_id, year)
+
+-- =============================================================================
+-- TABLE: predictions
+-- ML-generated urban expansion forecasts.
+-- =============================================================================
+-- | Column             | Type              | Description              |
+-- |--------------------|-------------------|--------------------------|
+-- | id                 | UUID PK           |                          |
+-- | district_id        | UUID FK           | → districts(id)          |
+-- | target_year        | INTEGER           | Forecast year            |
+-- | predicted_area_km2 | DECIMAL           |                          |
+-- | predicted_density  | DECIMAL           |                          |
+-- | confidence_score   | DECIMAL           | 0–1                      |
+-- | model_type         | TEXT              | e.g. random_forest       |
+-- | hotspot_geometry   | JSONB             | Predicted hotspot        |
+-- | status             | prediction_status |                          |
+-- | metadata           | JSONB             |                          |
+-- | created_by         | UUID FK           | → profiles(id)           |
+-- | created_at         | TIMESTAMPTZ       |                          |
+-- | updated_at         | TIMESTAMPTZ       |                          |
+
+-- =============================================================================
+-- TABLE: reports
+-- Downloadable research reports (PDF).
+-- =============================================================================
+-- | Column       | Type          | Description                      |
+-- |--------------|---------------|----------------------------------|
+-- | id           | UUID PK       |                                  |
+-- | title        | TEXT          | Report title                     |
+-- | description  | TEXT          | Summary                          |
+-- | year_range   | TEXT          | e.g. 2014–2026                   |
+-- | file_url     | TEXT          | Storage URL                      |
+-- | file_size    | INTEGER       | Bytes                            |
+-- | status       | report_status | draft | published | archived     |
+-- | generated_by | UUID FK       | → profiles(id)                   |
+-- | metadata     | JSONB         | pages, format, etc.              |
+-- | created_at   | TIMESTAMPTZ   |                                  |
+-- | updated_at   | TIMESTAMPTZ   |                                  |
+
+-- =============================================================================
+-- TABLE: gis_layers
+-- Map layer definitions and GeoJSON data.
+-- =============================================================================
+-- | Column      | Type    | Description                              |
+-- |-------------|---------|------------------------------------------|
+-- | id          | UUID PK |                                          |
+-- | name        | TEXT    | Display name                             |
+-- | slug        | TEXT    | Unique key (districts, built-up, etc.)   |
+-- | description | TEXT    |                                          |
+-- | layer_type  | TEXT    | vector | raster | heatmap | satellite    |
+-- | year        | INTEGER | Optional year filter                     |
+-- | geojson     | JSONB   | FeatureCollection                        |
+-- | file_url    | TEXT    | External tile/file URL                   |
+-- | style       | JSONB   | Leaflet style overrides                  |
+-- | is_visible  | BOOLEAN | Default visibility                       |
+-- | is_public   | BOOLEAN | Public read access                       |
+-- | sort_order  | INTEGER | Layer stack order                        |
+-- | created_by  | UUID FK | → profiles(id)                           |
+-- | created_at  | TIMESTAMPTZ |                                      |
+-- | updated_at  | TIMESTAMPTZ |                                      |
+
+-- =============================================================================
+-- TABLE: analytics_logs
+-- Platform usage and event tracking.
+-- =============================================================================
+-- | Column     | Type        | Description                          |
+-- |------------|-------------|--------------------------------------|
+-- | id         | UUID PK     |                                      |
+-- | event_type | TEXT        | e.g. map_view, report_download       |
+-- | event_data | JSONB       | Event payload                        |
+-- | user_id    | UUID FK     | → profiles(id), nullable             |
+-- | session_id | TEXT        | Anonymous session                    |
+-- | ip_hash    | TEXT        | Hashed IP for privacy                |
+-- | created_at | TIMESTAMPTZ |                                      |
+
+-- =============================================================================
+-- ACCESS CONTROL (Row Level Security)
+-- =============================================================================
+-- Public read : districts, urban_growth, building_density,
+--               completed predictions, published reports, public gis_layers
+-- User        : own profile read/update
+-- admin       : full write on data tables + analytics read
+-- super_admin : full access including user role management
+-- analyst     : legacy write access (web-only UI, no dashboard)
+-- user        : web platform only, no dashboard
+
+-- =============================================================================
+-- RELATIONSHIPS
+-- =============================================================================
+-- profiles ←── predictions.created_by
+-- profiles ←── reports.generated_by
+-- profiles ←── gis_layers.created_by
+-- profiles ←── analytics_logs.user_id
+-- districts ←── urban_growth.district_id
+-- districts ←── building_density.district_id
+-- districts ←── predictions.district_id
