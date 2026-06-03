@@ -395,7 +395,7 @@ BEGIN
     -- Required: identity record so GoTrue can authenticate via email/password
     INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (
-      new_uid::text,
+      new_uid,
       new_uid,
       json_build_object('sub', new_uid::text, 'email', 'observatory@mug.so'),
       'email',
@@ -417,7 +417,7 @@ BEGIN
     -- Ensure identity record exists for the existing user
     INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (
-      exist_id::text,
+      exist_id,
       exist_id,
       json_build_object('sub', exist_id::text, 'email', 'observatory@mug.so'),
       'email',

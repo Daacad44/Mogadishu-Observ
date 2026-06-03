@@ -54,7 +54,7 @@ BEGIN
     -- Required: identity row so GoTrue can authenticate email/password
     INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (
-      new_uid::text, new_uid,
+      new_uid, new_uid,
       json_build_object('sub', new_uid::text, 'email', 'observatory@mug.so'),
       'email', NOW(), NOW(), NOW()
     ) ON CONFLICT (provider, id) DO NOTHING;
@@ -75,7 +75,7 @@ BEGIN
     -- Ensure identity row exists
     INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (
-      existing_id::text, existing_id,
+      existing_id, existing_id,
       json_build_object('sub', existing_id::text, 'email', 'observatory@mug.so'),
       'email', NOW(), NOW(), NOW()
     ) ON CONFLICT (provider, id) DO NOTHING;
