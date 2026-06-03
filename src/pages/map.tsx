@@ -72,8 +72,8 @@ export default function MapPage() {
   const effectiveBasemap: BasemapType = layerMap.satellite ? "satellite" : basemap;
 
   return (
-    <div className="flex h-full min-h-0 w-full">
-      <div className="flex-1 relative min-w-0 min-h-0">
+    <div className="flex h-full w-full overflow-hidden">
+      <div className="flex-1 relative min-w-0 overflow-hidden">
         <GisMapLoader
           year={year}
           basemap={effectiveBasemap}
@@ -118,7 +118,7 @@ export default function MapPage() {
       <div
         className={
           panelOpen
-            ? "fixed inset-y-0 right-0 z-[1001] lg:relative lg:inset-auto flex h-full"
+            ? "fixed inset-y-0 right-0 z-[1001] lg:relative lg:inset-y-auto flex h-full"
             : "hidden lg:flex h-full"
         }
       >

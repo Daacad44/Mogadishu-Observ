@@ -9,19 +9,26 @@ export function PublicLayout() {
   const { pathname } = useLocation();
   const isFullBleed = FULL_BLEED_ROUTES.some((r) => pathname.startsWith(r));
 
-  return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <Navbar />
-      <main
-        className={cn(
-          "flex-1 flex flex-col min-h-0",
-          isFullBleed ? "overflow-hidden pt-16" : "pt-16 overflow-x-hidden"
-        )}
-      >
-        <div className={cn("flex-1 w-full", isFullBleed && "min-h-0 h-[calc(100dvh-4rem)]")}>
+  if (isFullBleed) {
+    return (
+      // Fixed viewport height — gives Leaflet a bounded pixel height to fill
+      <div className="h-dvh w-full overflow-hidden flex flex-col bg-background">
+        <Navbar />
+        <div className="flex-1 min-h-0 overflow-hidden">
           <Outlet />
         </div>
-        {!isFullBleed && <Footer />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-dvh flex flex-col bg-background">
+      <Navbar />
+      <main className="flex-1 flex flex-col pt-16 overflow-x-hidden">
+        <div className="flex-1 w-full">
+          <Outlet />
+        </div>
+        <Footer />
       </main>
     </div>
   );

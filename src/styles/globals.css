@@ -81,6 +81,9 @@ body {
 .leaflet-container {
   background: #0a0e17 !important;
   font-family: var(--font-sans);
+  /* Ensures the map always fills its parent regardless of flex quirks */
+  height: 100% !important;
+  width: 100% !important;
 }
 
 .maplibregl-map {

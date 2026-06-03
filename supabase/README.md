@@ -20,6 +20,7 @@ Open **SQL Editor** in Supabase and run each file **in order**:
 | 2 | `migrations/002_super_admin.sql` | Super admin role + policies |
 | 3 | `migrations/003_seed_data.sql` | Seed districts, growth, reports, layers |
 | 4 | `migrations/004_contact_messages.sql` | Contact form messages table + RLS |
+| 5 | `migrations/006_create_super_admin_account.sql` | Creates observatory@mug.so super admin |
 
 ## 3. Create your admin account
 
