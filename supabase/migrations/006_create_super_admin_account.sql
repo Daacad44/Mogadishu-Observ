@@ -52,12 +52,14 @@ BEGIN
     );
 
     -- Required: identity row so GoTrue can authenticate email/password
-    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-    VALUES (
-      new_uid, new_uid,
-      json_build_object('sub', new_uid::text, 'email', 'observatory@mug.so'),
-      'email', NOW(), NOW(), NOW()
-    ) ON CONFLICT (provider, id) DO NOTHING;
+    IF NOT EXISTS (SELECT 1 FROM auth.identities WHERE user_id = new_uid AND provider = 'email') THEN
+      INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+      VALUES (
+        new_uid, new_uid,
+        json_build_object('sub', new_uid::text, 'email', 'observatory@mug.so'),
+        'email', NOW(), NOW(), NOW()
+      );
+    END IF;
 
     INSERT INTO profiles (id, email, full_name, role)
     VALUES (new_uid, 'observatory@mug.so', 'Observatory Admin', 'super_admin')
@@ -73,12 +75,14 @@ BEGIN
     WHERE id = existing_id;
 
     -- Ensure identity row exists
-    INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-    VALUES (
-      existing_id, existing_id,
-      json_build_object('sub', existing_id::text, 'email', 'observatory@mug.so'),
-      'email', NOW(), NOW(), NOW()
-    ) ON CONFLICT (provider, id) DO NOTHING;
+    IF NOT EXISTS (SELECT 1 FROM auth.identities WHERE user_id = existing_id AND provider = 'email') THEN
+      INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+      VALUES (
+        existing_id, existing_id,
+        json_build_object('sub', existing_id::text, 'email', 'observatory@mug.so'),
+        'email', NOW(), NOW(), NOW()
+      );
+    END IF;
 
     INSERT INTO profiles (id, email, full_name, role)
     VALUES (existing_id, 'observatory@mug.so', 'Observatory Admin', 'super_admin')
