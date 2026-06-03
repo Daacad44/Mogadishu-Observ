@@ -155,6 +155,21 @@
 -- | created_at | TIMESTAMPTZ |                                      |
 
 -- =============================================================================
+-- TABLE: contact_messages
+-- Public contact form submissions.
+-- =============================================================================
+-- | Column     | Type        | Description                          |
+-- |------------|-------------|--------------------------------------|
+-- | id         | UUID PK     |                                      |
+-- | name       | TEXT        | Sender name                          |
+-- | email      | TEXT        | Sender email                         |
+-- | subject    | TEXT        | Optional subject line                |
+-- | message    | TEXT        | Message body                         |
+-- | status     | TEXT        | new | read | archived                |
+-- | user_id    | UUID FK     | → profiles(id), nullable             |
+-- | created_at | TIMESTAMPTZ |                                      |
+
+-- =============================================================================
 -- ACCESS CONTROL (Row Level Security)
 -- =============================================================================
 -- Public read : districts, urban_growth, building_density,
@@ -172,6 +187,7 @@
 -- profiles ←── reports.generated_by
 -- profiles ←── gis_layers.created_by
 -- profiles ←── analytics_logs.user_id
+-- profiles ←── contact_messages.user_id
 -- districts ←── urban_growth.district_id
 -- districts ←── building_density.district_id
 -- districts ←── predictions.district_id

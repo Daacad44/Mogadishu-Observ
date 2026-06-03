@@ -21,6 +21,6 @@ python-analysis/.venv/
 # Vercel
 .vercel
 
-# Legacy Next.js
-.next/
-out/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
