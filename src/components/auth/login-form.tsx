@@ -27,7 +27,21 @@ export function LoginForm() {
       const profile = await signIn(email, password);
       navigate(getPostLoginRedirect(profile, requestedRedirect), { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : "Login failed";
+      // Surface friendly messages for common Supabase auth errors
+      if (msg.includes("Database error") || msg.includes("querying schema")) {
+        setError(
+          "Database not set up yet. Please run supabase/migrations/000_complete_setup.sql in your Supabase SQL Editor first."
+        );
+      } else if (msg.includes("Invalid login credentials") || msg.includes("invalid_credentials")) {
+        setError("Incorrect email or password. Please try again.");
+      } else if (msg.includes("Email not confirmed")) {
+        setError("Please confirm your email address before signing in.");
+      } else if (msg.includes("not configured") || msg.includes("Supabase")) {
+        setError("Database connection not configured. Add VITE_SUPABASE_* to your .env file.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
