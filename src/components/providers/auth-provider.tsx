@@ -154,10 +154,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("signOut failed", err);
+    } finally {
+      // Always clear local state so the UI never holds a stale session,
+      // even if the network sign-out call fails.
+      setUser(null);
+      setProfile(null);
+    }
   }, [supabase]);
 
   const updateProfile = useCallback(
