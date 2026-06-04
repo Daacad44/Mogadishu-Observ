@@ -15,16 +15,16 @@ export function UserMenu() {
   };
 
   if (loading) {
-    return <div className="h-9 w-20 rounded-lg bg-secondary/50 animate-pulse" />;
+    return <div className="hidden sm:block h-9 w-32 rounded-lg bg-secondary/50 animate-pulse" />;
   }
 
   if (!user) {
     return (
       <div className="hidden sm:flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/login">Sign In</Link>
+          <Link to="/login">Login</Link>
         </Button>
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="default" size="sm" asChild className="shadow-sm">
           <Link to="/register">Register</Link>
         </Button>
       </div>
@@ -37,7 +37,11 @@ export function UserMenu() {
 
   return (
     <div className="hidden sm:flex items-center gap-2">
-      <div className="flex items-center gap-2 rounded-lg border border-glass-border bg-glass px-3 py-1.5">
+      <Link
+        to="/profile"
+        className="flex items-center gap-2 rounded-lg border border-glass-border bg-glass px-3 py-1.5 hover:border-primary/40 transition-colors"
+        title="Profile"
+      >
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
           <User className="h-3.5 w-3.5 text-primary" />
         </div>
@@ -49,7 +53,7 @@ export function UserMenu() {
             </Badge>
           )}
         </div>
-      </div>
+      </Link>
       {isAdmin && (
         <Button variant="ghost" size="sm" asChild title="Analytics Dashboard">
           <Link to="/dashboard"><LayoutDashboard className="h-4 w-4" /></Link>
@@ -60,7 +64,7 @@ export function UserMenu() {
           <Link to="/admin"><Shield className="h-4 w-4" /></Link>
         </Button>
       )}
-      <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out">
+      <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out" title="Logout">
         <LogOut className="h-4 w-4" />
       </Button>
     </div>

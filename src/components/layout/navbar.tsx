@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   Map,
@@ -10,12 +10,15 @@ import {
   Menu,
   X,
   Satellite,
+  User,
+  LogOut,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
 import { useAuth } from "@/components/providers/auth-provider";
-import { canAccessAdminDashboard } from "@/lib/auth/roles";
+import { canAccessAdminDashboard, canManageUsers } from "@/lib/auth/roles";
 
 const baseNavLinks = [
   { href: "/", label: "Home", icon: Satellite },
@@ -28,9 +31,17 @@ const baseNavLinks = [
 
 export function Navbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const isAdmin = canAccessAdminDashboard(profile);
+  const isSuperAdmin = canManageUsers(profile);
+
+  const handleMobileSignOut = async () => {
+    setMobileOpen(false);
+    await signOut();
+    navigate("/");
+  };
 
   const navLinks = isAdmin
     ? [
@@ -72,10 +83,10 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <UserMenu />
-          <Button variant="default" size="sm" asChild className="hidden sm:flex">
+          <Button variant="outline" size="sm" asChild className="hidden lg:flex">
             <Link to="/map">Explore Map</Link>
           </Button>
+          <UserMenu />
           <button
             className="lg:hidden p-2 rounded-lg hover:bg-glass"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -105,6 +116,59 @@ export function Navbar() {
                 {label}
               </Link>
             ))}
+
+            {/* Auth section */}
+            <div className="mt-3 pt-3 border-t border-glass-border flex flex-col gap-2">
+              {!user ? (
+                <>
+                  <Button variant="outline" asChild className="w-full justify-center">
+                    <Link to="/login" onClick={() => setMobileOpen(false)}>
+                      Login
+                    </Link>
+                  </Button>
+                  <Button variant="default" asChild className="w-full justify-center">
+                    <Link to="/register" onClick={() => setMobileOpen(false)}>
+                      Register
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  )}
+                  {isSuperAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Command Center
+                    </Link>
+                  )}
+                  <Button variant="outline" onClick={handleMobileSignOut} className="w-full justify-center gap-2">
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </nav>
       )}

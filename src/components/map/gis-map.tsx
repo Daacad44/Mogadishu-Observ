@@ -2,6 +2,7 @@ import "@/lib/leaflet-setup";
 import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet.heat";
+import { Loader2 } from "lucide-react";
 import { MOGADISHU_CENTER, MOGADISHU_BOUNDS, DISTRICTS } from "@/lib/data/sample-data";
 import { mapService } from "@/services/api";
 
@@ -75,11 +76,13 @@ export function GisMap({
   const basemapRef = useRef<{ base?: L.TileLayer; labels?: L.TileLayer }>({});
   const layersRef = useRef<Record<string, L.Layer | undefined>>({});
   const [ready, setReady] = useState(false);
+  const [tilesLoading, setTilesLoading] = useState(true);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
-    const map = L.map(mapRef.current, {
+    const container = mapRef.current;
+    const map = L.map(container, {
       center: MOGADISHU_CENTER,
       zoom: 13,
       minZoom: 11,
@@ -102,7 +105,29 @@ export function GisMap({
     setReady(true);
     onZoomChange?.(map.getZoom());
 
+    // CRITICAL FIX for black/blank map: the container may have 0 / wrong size
+    // when Leaflet initializes (lazy load + flex layout). Force it to recompute
+    // its dimensions once the DOM has settled and whenever the container resizes.
+    const invalidate = () => map.invalidateSize({ animate: false });
+    const raf = requestAnimationFrame(invalidate);
+    const timers = [
+      setTimeout(invalidate, 150),
+      setTimeout(invalidate, 500),
+      setTimeout(invalidate, 1000),
+    ];
+
+    let resizeObserver: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+      resizeObserver.observe(container);
+    }
+    window.addEventListener("resize", invalidate);
+
     return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", invalidate);
       map.remove();
       mapInstance.current = null;
       basemapRef.current = {};
@@ -147,7 +172,7 @@ export function GisMap({
     return () => { map.off("moveend", sync); };
   }, [ready]);
 
-  // Basemap switch
+  // Basemap switch (with loading state + automatic fallback on tile errors)
   useEffect(() => {
     const map = mapInstance.current;
     if (!map || !ready) return;
@@ -156,10 +181,38 @@ export function GisMap({
     if (basemapRef.current.base) map.removeLayer(basemapRef.current.base);
     if (basemapRef.current.labels) map.removeLayer(basemapRef.current.labels);
 
-    basemapRef.current.base = L.tileLayer(config.url, {
+    setTilesLoading(true);
+
+    const base = L.tileLayer(config.url, {
       attribution: config.attribution,
       maxZoom: 19,
-    }).addTo(map);
+      // Light gray placeholder instead of harsh black while a tile is missing
+      errorTileUrl:
+        "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Crect width='256' height='256' fill='%23101826'/%3E%3C/svg%3E",
+    });
+
+    let fallbackAdded = false;
+    let errorCount = 0;
+    base.on("load", () => setTilesLoading(false));
+    base.on("tileerror", () => {
+      errorCount += 1;
+      // If the primary provider repeatedly fails, drop in OpenStreetMap so the
+      // user never stares at a black screen.
+      if (!fallbackAdded && errorCount > 4) {
+        fallbackAdded = true;
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap',
+        }).addTo(map);
+        setTilesLoading(false);
+      }
+    });
+
+    base.addTo(map);
+    basemapRef.current.base = base;
+
+    // Safety: clear the loader even if the 'load' event is missed
+    const t = setTimeout(() => setTilesLoading(false), 3000);
 
     if (config.labels) {
       basemapRef.current.labels = L.tileLayer(config.labels, {
@@ -167,6 +220,8 @@ export function GisMap({
         pane: "overlayPane",
       }).addTo(map);
     }
+
+    return () => clearTimeout(t);
   }, [basemap, ready]);
 
   const clearLayer = (key: string) => {
@@ -306,8 +361,18 @@ export function GisMap({
   }, [selectedDistrict, flyToDistrict]);
 
   return (
-    <div className={`relative h-full w-full ${className}`}>
-      <div ref={mapRef} className="h-full w-full" />
+    <div className={`relative h-full w-full min-h-[300px] ${className}`}>
+      <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+
+      {tilesLoading && (
+        <div className="pointer-events-none absolute inset-0 z-[998] flex items-center justify-center bg-[#0a0e17]/70 backdrop-blur-sm transition-opacity">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-xs font-medium text-muted-foreground">Loading map tiles…</p>
+          </div>
+        </div>
+      )}
+
       <div className="minimap-container absolute bottom-20 right-4 z-[999] w-28 h-24 hidden md:block">
         <div ref={miniMapRef} className="h-full w-full" />
       </div>
