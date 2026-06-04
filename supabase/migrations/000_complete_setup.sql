@@ -241,44 +241,52 @@ CREATE POLICY "Admin update contact messages"  ON contact_messages FOR UPDATE
 
 -- ─── Functions & Triggers ─────────────────────────────────────────────────────
 -- Auto-create profile on signup, auto-promote observatory@mug.so
+-- CRITICAL: SET search_path = public so SECURITY DEFINER can resolve `profiles`
+-- when invoked by the supabase_auth_admin role during signup.
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
-  assigned_role user_role := 'user';
+  assigned_role public.user_role := 'user';
 BEGIN
-  BEGIN
-    -- Determine role: super-admin email gets promoted; others default to 'user'
-    IF NEW.email = 'observatory@mug.so' THEN
-      assigned_role := 'super_admin';
-    ELSIF NEW.raw_user_meta_data->>'role' IS NOT NULL
-      AND NEW.raw_user_meta_data->>'role' IN ('user','admin','analyst','super_admin') THEN
-      assigned_role := (NEW.raw_user_meta_data->>'role')::user_role;
-    END IF;
+  IF NEW.email = 'observatory@mug.so' THEN
+    assigned_role := 'super_admin';
+  ELSIF NEW.raw_user_meta_data ? 'role'
+    AND (NEW.raw_user_meta_data->>'role') IN ('user','admin','analyst','super_admin') THEN
+    assigned_role := (NEW.raw_user_meta_data->>'role')::public.user_role;
+  END IF;
 
-    INSERT INTO profiles (id, email, full_name, role)
-    VALUES (
-      NEW.id,
-      NEW.email,
-      COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-      assigned_role
-    )
-    ON CONFLICT (id) DO UPDATE
-      SET role = EXCLUDED.role, updated_at = NOW();
-
-  EXCEPTION WHEN OTHERS THEN
-    -- Never block user creation because of a profile trigger error
-    NULL;
-  END;
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    assigned_role
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET role = EXCLUDED.role, updated_at = NOW();
 
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'handle_new_user failed for %: %', NEW.email, SQLERRM;
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Drop trigger first (CREATE OR REPLACE doesn't work for triggers)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Permissions so the auth service can run the trigger & write the profile
+ALTER FUNCTION handle_new_user() OWNER TO postgres;
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin, authenticated, anon, service_role;
+GRANT ALL ON public.profiles TO supabase_auth_admin, service_role;
+GRANT EXECUTE ON FUNCTION handle_new_user() TO supabase_auth_admin, service_role;
 
 -- updated_at helper
 CREATE OR REPLACE FUNCTION update_updated_at()
