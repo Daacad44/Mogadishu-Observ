@@ -60,28 +60,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        setProfile(p);
+    let active = true;
+
+    // Safety net: never let the UI hang on the loading skeleton. If the session
+    // request stalls (network / misconfig on prod), resolve loading anyway so
+    // the public Login/Register buttons render.
+    const failSafe = setTimeout(() => {
+      if (active) setLoading(false);
+    }, 4000);
+
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!active) return;
+        const session = data.session;
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const p = await fetchProfile(session.user.id);
+          if (active) setProfile(p);
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("getSession failed", err);
+      } finally {
+        if (active) setLoading(false);
+        clearTimeout(failSafe);
       }
-      setLoading(false);
-    });
+    })();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
       setUser(session?.user ?? null);
-      if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        setProfile(p);
-      } else {
-        setProfile(null);
+      try {
+        if (session?.user) {
+          const p = await fetchProfile(session.user.id);
+          if (active) setProfile(p);
+        } else {
+          setProfile(null);
+        }
+      } catch {
+        if (active) setProfile(null);
+      } finally {
+        if (active) setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      clearTimeout(failSafe);
+      subscription.unsubscribe();
+    };
   }, [supabase, fetchProfile]);
 
   const signIn = useCallback(
