@@ -28,8 +28,8 @@ export function HeroSection() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Button size="lg" asChild className="shadow-lg shadow-primary/20">
-              <Link to="/map">
-                Explore GIS Map
+              <Link to="/prediction">
+                Explore Predictions
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

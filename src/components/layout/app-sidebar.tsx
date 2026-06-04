@@ -27,14 +27,13 @@ import { Badge } from "@/components/ui/badge";
 
 const publicLinks = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/map", label: "GIS Map", icon: Map },
   { to: "/prediction", label: "Predictions", icon: TrendingUp },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/about", label: "About", icon: Info },
   { to: "/contact", label: "Contact", icon: Mail },
 ];
 
-const adminNavLinks: { to: string; label: string; icon: typeof Map; end?: boolean }[] = [
+const adminNavLinks: { to: string; label: string; icon: typeof Home; end?: boolean }[] = [
   { to: "/dashboard", label: "Analytics Dashboard", icon: LayoutDashboard },
   { to: "/admin", label: "Command Center", icon: Shield, end: true },
   { to: "/admin/upload", label: "Data Upload", icon: Upload },

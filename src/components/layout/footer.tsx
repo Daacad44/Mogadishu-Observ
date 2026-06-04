@@ -24,9 +24,9 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-3 text-xs uppercase tracking-wider text-muted-foreground">Platform</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/map" className="hover:text-primary transition-colors">GIS Map</Link></li>
               <li><Link to="/prediction" className="hover:text-primary transition-colors">Predictions</Link></li>
               <li><Link to="/reports" className="hover:text-primary transition-colors">Reports</Link></li>
+              <li><Link to="/about" className="hover:text-primary transition-colors">About</Link></li>
             </ul>
           </div>
           <div>

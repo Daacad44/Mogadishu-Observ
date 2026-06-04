@@ -1,7 +1,7 @@
 import { lazy } from "react";
+import { Navigate } from "react-router-dom";
 
 const HomePage = lazy(() => import("@/pages/home"));
-const MapPage = lazy(() => import("@/pages/map"));
 const PredictionPage = lazy(() => import("@/pages/prediction"));
 const ReportsPage = lazy(() => import("@/pages/reports"));
 const AboutPage = lazy(() => import("@/pages/about"));
@@ -21,7 +21,7 @@ const AdminMessages = lazy(() => import("@/pages/admin/messages"));
 /** Public web routes — available to all users without admin dashboard. */
 export const routes = [
   { path: "/", element: <HomePage /> },
-  { path: "/map", element: <MapPage /> },
+  { path: "/map", element: <Navigate to="/" replace /> },
   { path: "/prediction", element: <PredictionPage /> },
   { path: "/reports", element: <ReportsPage /> },
   { path: "/about", element: <AboutPage /> },

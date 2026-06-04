@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  Map,
   LayoutDashboard,
   TrendingUp,
   FileText,
@@ -22,7 +21,6 @@ import { canAccessAdminDashboard, canManageUsers } from "@/lib/auth/roles";
 
 const baseNavLinks = [
   { href: "/", label: "Home", icon: Satellite },
-  { href: "/map", label: "Map", icon: Map },
   { href: "/prediction", label: "Predictions", icon: TrendingUp },
   { href: "/reports", label: "Reports", icon: FileText },
   { href: "/about", label: "About", icon: Info },
@@ -45,9 +43,9 @@ export function Navbar() {
 
   const navLinks = isAdmin
     ? [
-        ...baseNavLinks.slice(0, 2),
+        ...baseNavLinks.slice(0, 1),
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        ...baseNavLinks.slice(2),
+        ...baseNavLinks.slice(1),
       ]
     : baseNavLinks;
 
@@ -83,9 +81,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild className="hidden lg:flex">
-            <Link to="/map">Explore Map</Link>
-          </Button>
           <UserMenu />
           <button
             className="lg:hidden p-2 rounded-lg hover:bg-glass"
