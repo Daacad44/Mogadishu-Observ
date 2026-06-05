@@ -1,15 +1,24 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, User, Mail, Shield, Save, Key } from "lucide-react";
+import { Loader2, User, Mail, Shield, Save, Key, LogOut } from "lucide-react";
 import { roleLabel } from "@/lib/auth/roles";
 
 export function ProfileForm() {
-  const { user, profile, loading, updateProfile, updatePassword } = useAuth();
+  const { user, profile, loading, updateProfile, updatePassword, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await signOut();
+    navigate("/");
+  };
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [newPassword, setNewPassword] = useState("");
@@ -186,6 +195,33 @@ export function ProfileForm() {
               {passwordSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Password"}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card glass>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LogOut className="h-5 w-5 text-red-400" />
+            Session
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Sign out of your account on this device.
+          </p>
+          <Button
+            variant="destructive"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="gap-2 sm:w-auto w-full"
+          >
+            {signingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+            Sign Out
+          </Button>
         </CardContent>
       </Card>
     </div>
