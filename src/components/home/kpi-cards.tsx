@@ -1,13 +1,39 @@
 import { motion } from "framer-motion";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { Layers, TrendingUp, Users, Building2, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useCountUp } from "@/hooks/use-count-up";
 import { useStatistics } from "@/hooks/use-growth-data";
 import { cn } from "@/lib/utils";
 
-const sparkData = [
-  { v: 12 }, { v: 14 }, { v: 13 }, { v: 16 }, { v: 18 }, { v: 17 }, { v: 21 }, { v: 24 },
-];
+// Lightweight inline SVG sparkline — avoids pulling recharts (~113 kB gzip)
+// onto the above-the-fold critical path. Data is static.
+const SPARK_VALUES = [12, 14, 13, 16, 18, 17, 21, 24];
+
+function Sparkline({ color, id }: { color: string; id: string }) {
+  const min = Math.min(...SPARK_VALUES);
+  const max = Math.max(...SPARK_VALUES);
+  const range = max - min || 1;
+  const n = SPARK_VALUES.length;
+  const points = SPARK_VALUES.map((v, i) => {
+    const x = (i / (n - 1)) * 100;
+    const y = 90 - ((v - min) / range) * 80;
+    return [x, y] as const;
+  });
+  const line = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const area = `${line} L100,100 L0,100 Z`;
+
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${id})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
 
 interface KpiItemProps {
   title: string;
@@ -51,17 +77,7 @@ function KpiCard({ title, value, suffix = "", decimals = 1, trend, icon: Icon, c
         </div>
       </div>
       <div className="h-12 -mx-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={sparkData}>
-            <defs>
-              <linearGradient id={`spark-${title}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#spark-${title})`} dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
+        <Sparkline color={color} id={`spark-${title.replace(/\s+/g, "-")}`} />
       </div>
     </motion.div>
   );
